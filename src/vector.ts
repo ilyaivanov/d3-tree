@@ -20,3 +20,9 @@ export const divide = (v1: Vector, val: number) => ({
 export const fromMousePosition = (e: MouseEvent) => {
   return create(e.clientX, e.clientY);
 };
+
+export const clamp = (val: number, minVal: number, maxVal: number) => {
+  if (val < minVal) return minVal;
+  if (val > maxVal) return maxVal;
+  return val;
+};

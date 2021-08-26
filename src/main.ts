@@ -113,11 +113,14 @@ for (const { label, value, format, x } of columns) {
 
 document.body.appendChild(svg.node()!);
 
-window.addEventListener("resize", () =>
-  svg.node()!.setAttribute("viewBox", getViewbox())
+initViewportController(
+  svg.node()!,
+  {
+    x: -nodeSize / 2,
+    y: (-nodeSize * 3) / 2,
+  },
+  {
+    itemsCount: i + 1,
+    nodeSize,
+  }
 );
-
-initViewportController(svg.node()!, {
-  x: -nodeSize / 2,
-  y: (-nodeSize * 3) / 2,
-});
