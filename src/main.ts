@@ -119,8 +119,5 @@ initViewportController(
     x: -nodeSize / 2,
     y: (-nodeSize * 3) / 2,
   },
-  {
-    itemsCount: i + 1,
-    nodeSize,
-  }
+  { maxHeight: (i + 1) * nodeSize }
 );

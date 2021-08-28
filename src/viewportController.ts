@@ -3,15 +3,14 @@ import * as vec from "./vector";
 export const initViewportController = (
   svgElement: SVGSVGElement,
   initialCameraPosition: vec.Vector,
-  props: { itemsCount: number; nodeSize: number }
+  props: { maxHeight: number }
 ) => {
   let cameraPosition = initialCameraPosition;
   const scale = 1;
 
   const updateViewBox = (v: vec.Vector) => {
     cameraPosition = v;
-    // const windowSize = vec.create(window.innerWidth, window.innerHeight);
-    const windowSize = vec.create(500, 500);
+    const windowSize = vec.create(window.innerWidth, window.innerHeight);
     const scaledWindowDimensions = vec.divide(windowSize, scale);
     const f = (a: number) => a;
     svgElement.setAttribute(
@@ -22,8 +21,8 @@ export const initViewportController = (
     );
   };
 
-  svgElement.style.width = "500px";
-  svgElement.style.height = "500px";
+  svgElement.style.width = window.innerWidth + "px";
+  svgElement.style.height = window.innerHeight + "px";
   updateViewBox(cameraPosition);
   // const updateWindowSize = () => {
   //   // svgElement.style.width = window.innerWidth + "px";
@@ -83,7 +82,7 @@ export const initViewportController = (
       y: vec.clamp(
         cameraPosition.y + e.deltaY,
         initialCameraPosition.y,
-        props.itemsCount * props.nodeSize - 500
+        props.maxHeight - window.innerHeight + 40
       ),
     });
   };
