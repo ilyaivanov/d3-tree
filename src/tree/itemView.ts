@@ -1,4 +1,5 @@
 import { svgElem, circle, g, text, path } from "../infra/svg";
+import { dom, svg } from "../infra";
 import * as anim from "../infra/anim";
 import { MyItem } from "../items";
 import { spacings } from "./constants";
@@ -11,7 +12,6 @@ export class ItemView {
   private children?: SVGElement;
   private path: SVGElement;
   private text: SVGElement;
-  private textInput?: SVGElement;
   private circle: SVGElement;
 
   constructor(public item: MyItem, private onView: (view: ItemView) => void) {
@@ -87,28 +87,36 @@ export class ItemView {
   }
 
   public startEdit() {
-    this.textInput = svgElem("foreignObject");
-    this.textInput.setAttribute("x", "10");
-    this.textInput.setAttribute("y", "-10");
-    this.textInput.setAttribute("height", spacings.nodeSize + "");
-    this.textInput.setAttribute("width", "2000");
-    const input = document.createElement("input");
-    input.value = this.item.name;
-    input.classList.add("my-input");
-    input.addEventListener("keydown", (e) => {
-      e.stopPropagation();
-      this.item.name = input.value;
-      if (e.code === "Escape" || e.code == "Enter") this.stopEditing();
-    });
+    const input = dom.createRef("input");
+    const textInput = svg.foreignObject(
+      {
+        x: 10,
+        y: -10,
+        height: spacings.nodeSize,
+        width: 2000,
+      },
+      dom.input({
+        value: this.item.name,
+        className: "my-input",
+        ref: input,
+        onKeyDown: (e) => {
+          e.stopPropagation();
+          this.item.name = input.elem.value;
+          if (e.code === "Escape" || e.code == "Enter") {
+            this.stopEditing(textInput);
+          }
+        },
+      })
+    );
     this.text.remove();
-    this.textInput.appendChild(input);
-    this.circle.insertAdjacentElement("afterend", this.textInput);
-    input.focus();
-    input.setSelectionRange(0, 0);
+    this.circle.insertAdjacentElement("afterend", textInput);
+    input.elem.focus();
+    input.elem.setSelectionRange(0, 0);
   }
-  private stopEditing() {
+
+  private stopEditing(elem: Element) {
     this.text.textContent = this.item.name;
-    if (this.textInput) this.textInput.remove();
+    elem.remove();
 
     this.circle.insertAdjacentElement("afterend", this.text);
   }

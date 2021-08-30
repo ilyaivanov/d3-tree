@@ -1,3 +1,5 @@
+import { dom } from ".";
+
 export const svgNamespace = "http://www.w3.org/2000/svg";
 export const svgElem = <T extends keyof SVGElementTagNameMap>(name: T) =>
   document.createElementNS(svgNamespace, name) as SVGElementTagNameMap[T];
@@ -52,6 +54,22 @@ type PathProps = {
   fill?: string;
 };
 export const path = (props: PathProps) => assignProps(svgElem("path"), props);
+
+type ForeignObjectProps = {
+  x: number;
+  y: number;
+  width: number;
+  height: number;
+};
+export const foreignObject = (
+  props: ForeignObjectProps,
+  children?: Node[] | Node
+) => {
+  const result = assignProps(svgElem("foreignObject"), props);
+  if (children)
+    dom.appendChildren(result, Array.isArray(children) ? children : [children]);
+  return result;
+};
 
 type GProps = {
   transform?: string;

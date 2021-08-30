@@ -3,7 +3,7 @@ import * as vec from "../infra/vector";
 export const initViewportController = (
   svgElement: SVGSVGElement,
   initialCameraPosition: vec.Vector,
-  props: { maxHeight: number }
+  props: { maxHeight: number; onScroll: Action<number> }
 ) => {
   let cameraPosition = initialCameraPosition;
   const scale = 1;
@@ -21,16 +21,12 @@ export const initViewportController = (
     );
   };
 
-  svgElement.style.width = window.innerWidth + "px";
-  svgElement.style.height = window.innerHeight + "px";
-  updateViewBox(cameraPosition);
   const updateWindowSize = () => {
-    // svgElement.style.width = window.innerWidth + "px";
-    // svgElement.style.height = window.innerHeight + "px";
     svgElement.style.width = window.innerWidth + "px";
     svgElement.style.height = window.innerHeight + "px";
     updateViewBox(cameraPosition);
   };
+  updateWindowSize();
   window.addEventListener("resize", updateWindowSize);
 
   // const onKeyDown = () => {
@@ -76,14 +72,18 @@ export const initViewportController = (
 
     // updateViewBox(nextCameraPosition, nextScale);
 
-    updateViewBox({
-      x: cameraPosition.x,
-      y: vec.clamp(
-        cameraPosition.y + e.deltaY,
-        initialCameraPosition.y,
-        props.maxHeight - window.innerHeight + 40
-      ),
-    });
+    const y = vec.clamp(
+      cameraPosition.y + e.deltaY,
+      initialCameraPosition.y,
+      props.maxHeight - window.innerHeight + 40
+    );
+    updateViewBox({ x: cameraPosition.x, y });
+    props.onScroll(y);
   };
   window.addEventListener("mousewheel", onMouseWheel);
+  return {
+    setOffset: (y: number) => {
+      updateViewBox({ x: cameraPosition.x, y });
+    },
+  };
 };
