@@ -1,11 +1,5 @@
-export type MyItem = {
-  name: string;
-  children?: MyItem[];
-  index?: number;
-  level?: number;
-  value?: number;
-  parent?: MyItem;
-};
+import { MyItem } from "./vanilla/items";
+
 export default {
   name: "flare",
   children: [

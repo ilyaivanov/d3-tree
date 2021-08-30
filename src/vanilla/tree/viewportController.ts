@@ -1,4 +1,4 @@
-import * as vec from "./vector";
+import * as vec from "../../vector";
 
 export const initViewportController = (
   svgElement: SVGSVGElement,
