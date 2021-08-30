@@ -67,7 +67,7 @@ export class ItemView {
     }
   }
 
-  public updateIndex() {
+  public updatePositionInTree() {
     gsap.to(this.el, {
       attr: { transform: `translate(${this.localOffset()})` },
     });

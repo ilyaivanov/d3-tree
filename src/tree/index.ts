@@ -6,7 +6,7 @@ import { initViewportController } from "./viewportController";
 import { spacings } from "./constants";
 
 export const viewTree = (data: MyItem) => {
-  return new TreeView(data).svg;
+  return new TreeView(data).el;
 };
 
 class TreeView {
@@ -14,16 +14,16 @@ class TreeView {
 
   flatNodes: MyItem[] = [];
   selectedItemIndex = 0;
-  svg: SVGSVGElement;
+  el: SVGSVGElement;
   constructor(private root: MyItem) {
-    this.svg = svgElem("svg");
+    this.el = svgElem("svg");
 
     this.updateIndexes();
-    this.svg.appendChild(
+    this.el.appendChild(
       new ItemView(root, (item) => this.itemMap.set(item.item, item)).el
     );
     initViewportController(
-      this.svg,
+      this.el,
       { x: 0.5, y: 0.5 },
       { maxHeight: this.flatNodes.length * spacings.nodeSize }
     );
@@ -32,19 +32,7 @@ class TreeView {
   }
 
   private updateIndexes = () => {
-    let index = 0;
-    this.flatNodes = [];
-    const mapChild = (item: MyItem, level: number) => {
-      item.index = ++index;
-      this.flatNodes.push(item);
-      item.level = level;
-      if (item.children && !item.isClosed)
-        item.children.forEach((c) => {
-          c.parent = item;
-          mapChild(c, level + 1);
-        });
-    };
-    mapChild(this.root, 0);
+    this.flatNodes = items.createFlatItems(this.root);
   };
 
   private toggleSelectedItemVisibility = () => {
@@ -53,16 +41,18 @@ class TreeView {
     if (item.isClosed) this.itemMap.get(item)?.removeChildren();
     else this.itemMap.get(item)?.appendChildren();
     this.updateIndexes();
-    items.getItemsAfter(item).forEach((next) => {
-      this.itemMap.get(next)?.updateIndex();
+    items.getAllItemsAfter(item).forEach((next) => {
+      this.itemMap.get(next)?.updatePositionInTree();
     });
   };
 
   private selectItemAt = (newIndex: number) => {
-    const { itemMap, selectedItemIndex, flatNodes } = this;
-    itemMap.get(flatNodes[selectedItemIndex])?.unselect();
+    const { flatNodes } = this;
+    const itemToUnselect = flatNodes[this.selectedItemIndex];
+    this.actionOnView(itemToUnselect, (view) => view.unselect());
     this.selectedItemIndex = newIndex;
-    itemMap.get(flatNodes[selectedItemIndex])?.select();
+    const itemToSelect = flatNodes[this.selectedItemIndex];
+    this.actionOnView(itemToSelect, (view) => view.select());
   };
 
   private onKeyDown = (e: KeyboardEvent) => {
@@ -89,8 +79,15 @@ class TreeView {
         this.selectItemAt(flatNodes.indexOf(selectedItem.children[0]));
     }
     if (e.code === "KeyE") {
-      itemMap.get(flatNodes[selectedItemIndex])?.startEdit();
+      this.actionOnView(flatNodes[selectedItemIndex], (view) =>
+        view.startEdit()
+      );
       e.preventDefault();
     }
+  };
+
+  private actionOnView = (item: MyItem, action: (view: ItemView) => void) => {
+    const view = this.itemMap.get(item);
+    view && action(view);
   };
 }

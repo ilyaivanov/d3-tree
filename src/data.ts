@@ -1,4 +1,4 @@
-import { MyItem } from "./vanilla/items";
+import { MyItem } from "./items";
 
 export default {
   name: "flare",
