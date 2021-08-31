@@ -29,7 +29,11 @@ class TreeView {
       (window.innerHeight / this.canvasSize) * 100
     );
     this.svg.appendChild(
-      new ItemView(root, (item) => this.itemMap.set(item.item, item)).el
+      new ItemView({
+        item: root,
+        isFocusRoot: true,
+        onView: (item) => this.itemMap.set(item.item, item),
+      }).el
     );
     const { setOffset } = initViewportController(
       this.svg,

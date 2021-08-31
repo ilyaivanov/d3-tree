@@ -7,6 +7,12 @@ import "greensock";
 
 declare var gsap: any;
 
+type Props = {
+  item: MyItem;
+  onView: Action<ItemView>;
+  isFocusRoot: boolean;
+};
+
 export class ItemView {
   public el: SVGElement;
   private children?: SVGElement;
@@ -14,30 +20,44 @@ export class ItemView {
   private text: SVGElement;
   private circle: SVGElement;
 
-  constructor(public item: MyItem, private onView: (view: ItemView) => void) {
-    onView(this);
+  constructor(private props: Props) {
+    props.onView(this);
 
     this.children = this.renderChildren();
 
     this.path = path({ d: this.pathD(), stroke: "#4C5155", fill: "none" });
-    this.text = text(item.name, { x: 10, dy: "0.32em", fill: "#dddddd" });
+    this.text = text(this.item.name, {
+      //@ts-expect-error
+      "font-size": props.isFocusRoot ? 16 : undefined,
+      x: 10,
+      dy: "0.32em",
+      fill: "#dddddd",
+    });
 
-    const isEmpty = !item.children;
+    const isEmpty = !this.item.children;
     this.circle = circle({
       fill: isEmpty ? "transparent" : "white",
       "stroke-width": isEmpty ? 1.5 : 2,
       stroke: isEmpty ? "white" : undefined,
-      r: spacings.circleRadius,
+      r: props.isFocusRoot
+        ? spacings.circleFocusedRadius
+        : spacings.circleRadius,
     });
-    this.el = g([this.path, this.circle, this.text, this.children], {
+    //Drawing children first, because their path should appear below parent circle
+    this.el = g([this.path, this.children, this.circle, this.text], {
       transform: `translate(${this.localOffset()})`,
     });
+  }
+
+  get item() {
+    return this.props.item;
   }
 
   private localOffset = (): [number, number] => {
     const { item } = this;
     const parentIndex = item.parent?.index || 0;
     const x = spacings.nodeSize;
+    //TODO: why 'item.index! - parentIndex' is not equivalent of localIndex
     const y = (item.index! - parentIndex) * spacings.nodeSize;
     return [x, y];
   };
@@ -62,7 +82,7 @@ export class ItemView {
   public appendChildren() {
     this.children = this.renderChildren();
     if (this.children) {
-      this.el.appendChild(this.children);
+      this.path.insertAdjacentElement("afterend", this.children);
       anim.animateToOpaque(this.children, 250);
     }
   }
@@ -126,7 +146,12 @@ export class ItemView {
     return item.children && !item.isClosed
       ? g(
           item.children.map(
-            (subitem, index) => new ItemView(subitem, this.onView).el
+            (subitem, index) =>
+              new ItemView({
+                item: subitem,
+                isFocusRoot: false,
+                onView: this.props.onView,
+              }).el
           )
         )
       : undefined;
