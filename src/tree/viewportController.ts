@@ -1,89 +1,68 @@
 import * as vec from "../infra/vector";
 
-export const initViewportController = (
-  svgElement: SVGSVGElement,
-  initialCameraPosition: vec.Vector,
-  props: { maxHeight: number; onScroll: Action<number> }
-) => {
-  let cameraPosition = initialCameraPosition;
-  const scale = 1;
+export class ViewportController {
+  cameraPosition: vec.Vector = {
+    x: 0,
+    y: 0,
+  };
+  constructor(
+    private elem: SVGSVGElement,
+    private onScroll: Action<number>,
+    private maxHeight: number
+  ) {
+    window.addEventListener("resize", this.updateWindowSize);
+    window.addEventListener("mousewheel", this.onMouseWheel);
+    this.updateWindowSize();
+  }
 
-  const updateViewBox = (v: vec.Vector) => {
-    cameraPosition = v;
-    const windowSize = vec.create(window.innerWidth, window.innerHeight);
-    const scaledWindowDimensions = vec.divide(windowSize, scale);
+  public setOffset = (y: number) => {
+    this.updateViewBox({ x: this.cameraPosition.x, y });
+  };
+
+  private updateViewBox = (v: vec.Vector) => {
+    this.cameraPosition = v;
+    const scaledWindowDimensions = vec.create(
+      window.innerWidth,
+      window.innerHeight
+    );
     const f = (a: number) => a;
-    svgElement.setAttribute(
+    this.elem.setAttribute(
       "viewBox",
-      `${f(cameraPosition.x)} ${f(cameraPosition.y)} ${f(
+      `${f(this.cameraPosition.x)} ${f(this.cameraPosition.y)} ${f(
         scaledWindowDimensions.x
       )} ${f(scaledWindowDimensions.y)}`
     );
   };
 
-  const updateWindowSize = () => {
-    svgElement.style.width = window.innerWidth + "px";
-    svgElement.style.height = window.innerHeight + "px";
-    updateViewBox(cameraPosition);
+  private updateWindowSize = () => {
+    this.elem.style.width = window.innerWidth + "px";
+    this.elem.style.height = window.innerHeight + "px";
+    this.updateViewBox(this.cameraPosition);
   };
-  updateWindowSize();
-  window.addEventListener("resize", updateWindowSize);
 
-  // const onKeyDown = () => {
-  //   window.addEventListener("mousemove", onMouseMove);
-  // };
-  // const onKeyUp = () => {
-  //   window.removeEventListener("mousemove", onMouseMove);
-  // };
-
-  // const onMouseMove = (e: MouseEvent) => {
-  //   if (e.buttons == 1) {
-  //     const shift = vec.create(-e.movementX / scale, -e.movementY / scale);
-  //     updateViewBox(vec.add(cameraPosition, shift));
-  //   } else {
-  //     window.removeEventListener("mousemove", onMouseMove);
-  //   }
-  // };
-  // window.addEventListener("mousedown", onKeyDown);
-  // window.addEventListener("mouseup", onKeyUp);
-
-  const onMouseWheel = (event: Event) => {
+  private onMouseWheel = (event: Event) => {
     const e = event as WheelEvent;
-    //regular delta is 100 or -100, so our step is always 10%
-    // other apps do not do this like that.
-    // They probably scale "scale factor" not always by 10%
-    // Checkout Figma for example
-    // const nextScale = scale + scale * 0.1 * (-e.deltaY / 100);
-
-    // const mousePosition = vec.fromMousePosition(e);
-    // const currentMouseWorldPosition = vec.add(
-    //   cameraPosition,
-    //   vec.multiply(mousePosition, 1 / scale)
-    // );
-    // const nextMouseWorldPosition = vec.add(
-    //   cameraPosition,
-    //   vec.multiply(mousePosition, 1 / nextScale)
-    // );
-    // const diff = vec.subtract(
-    //   currentMouseWorldPosition,
-    //   nextMouseWorldPosition
-    // );
-    // const nextCameraPosition = vec.add(cameraPosition, diff);
-
-    // updateViewBox(nextCameraPosition, nextScale);
 
     const y = vec.clamp(
-      cameraPosition.y + e.deltaY,
-      initialCameraPosition.y,
-      props.maxHeight - window.innerHeight + 40
+      this.cameraPosition.y + e.deltaY,
+      0.5,
+      this.maxHeight - window.innerHeight + 40
     );
-    updateViewBox({ x: cameraPosition.x, y });
-    props.onScroll(y);
+    this.updateViewBox({ x: this.cameraPosition.x, y });
+    this.onScroll(y);
   };
-  window.addEventListener("mousewheel", onMouseWheel);
-  return {
-    setOffset: (y: number) => {
-      updateViewBox({ x: cameraPosition.x, y });
-    },
+
+  shiftTo = (vector: vec.Vector) => {
+    this.cameraPosition = vector;
+    const scaledWindowDimensions = vec.create(
+      window.innerWidth,
+      window.innerHeight
+    );
+    gsap.to(this.elem, {
+      attr: {
+        viewBox: `${this.cameraPosition.x} ${this.cameraPosition.y} ${scaledWindowDimensions.x} ${scaledWindowDimensions.y}`,
+      },
+      duration: 0.6,
+    });
   };
-};
+}

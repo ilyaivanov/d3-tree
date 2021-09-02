@@ -1,11 +1,12 @@
-import { svgElem } from "../infra/svg";
+import { rect, svgElem } from "../infra/svg";
 import { MyItem } from "../items";
 import { ItemView } from "./itemView";
 import * as items from "../items";
-import { initViewportController } from "./viewportController";
+import { ViewportController } from "./viewportController";
 import { spacings } from "./constants";
 import { css, dom, style } from "../infra";
 import { clamp } from "../infra/vector";
+import "greensock";
 
 export const viewTree = (data: MyItem) => {
   return new TreeView(data).el;
@@ -19,6 +20,7 @@ class TreeView {
   svg: SVGSVGElement;
   el: Element;
   scrollbar: Scrollbar;
+  viewportController: ViewportController;
   constructor(private root: MyItem) {
     this.svg = svgElem("svg");
     this.scrollbar = new Scrollbar();
@@ -28,29 +30,22 @@ class TreeView {
     this.scrollbar.setTrackerHeight(
       (window.innerHeight / this.canvasSize) * 100
     );
-    this.svg.appendChild(
-      new ItemView({
-        item: root,
-        isFocusRoot: true,
-        onView: (item) => this.itemMap.set(item.item, item),
-      }).el
-    );
-    const { setOffset } = initViewportController(
+
+    const rootG = new ItemView({
+      item: root,
+      isFocusRoot: true,
+      onView: (item) => this.itemMap.set(item.item, item),
+    }).el;
+
+    this.svg.appendChild(rootG);
+
+    this.viewportController = new ViewportController(
       this.svg,
-      { x: 0.5, y: 0.5 },
-      {
-        maxHeight: this.canvasSize,
-        onScroll: (canvasOffset) => {
-          const windowHeight = window.innerHeight;
-          this.scrollbar.setPosition(
-            (canvasOffset / (this.canvasSize - windowHeight + 150)) *
-              windowHeight
-          );
-        },
-      }
+      this.onScroll,
+      this.canvasSize
     );
     this.scrollbar.onDrag((windowOffset) => {
-      setOffset(
+      this.viewportController.setOffset(
         (windowOffset / window.innerHeight) *
           (this.canvasSize - window.innerHeight + 150)
       );
@@ -86,28 +81,73 @@ class TreeView {
 
   private onKeyDown = (e: KeyboardEvent) => {
     const { selectedItemIndex, flatNodes, itemMap } = this;
-    if (e.code === "ArrowDown") {
+    if (e.code === "ArrowRight" && e.altKey && e.shiftKey) {
+      const item = flatNodes[selectedItemIndex];
+
+      const y = (item.index! - 1) * spacings.nodeVerticalDistance;
+      const x = item.level! * spacings.nodeHorizontalDistance;
+
+      this.viewportController.shiftTo({ x, y });
+      (this.svg.childNodes[0] as SVGElement).setAttribute("fill", "red");
+      this.actionOnView(flatNodes[selectedItemIndex], (view) => view.focus());
+
+      this.actionOnView(flatNodes[selectedItemIndex], (view) => {
+        const mask = svgElem("mask");
+        mask.id = "myMask";
+        const rectToAnimate = rect({
+          height: 4000,
+          width: 4000,
+          x: 0,
+          y: 0,
+          fill: "rgba(255,255,255)",
+        });
+
+        mask.appendChild(rectToAnimate);
+        mask.appendChild(
+          rect({
+            height: view.getHeight(),
+            width: 2000,
+            y:
+              view.item.index! * spacings.nodeVerticalDistance -
+              spacings.nodeVerticalDistance * 1.5,
+            x:
+              view.item.level! * spacings.nodeHorizontalDistance -
+              spacings.nodeHorizontalDistance * 0.5,
+            fill: "rgba(255,255,255)",
+          })
+        );
+
+        this.svg.appendChild(mask);
+        const rootG = this.svg.childNodes[0]! as SVGElement;
+        rootG.setAttribute("mask", "url(#myMask)");
+
+        gsap.to(rectToAnimate, {
+          fill: "black",
+          duration: 0.6,
+          onCompete: () => {
+            this.root = view.item;
+            this.updateIndexes();
+          },
+        });
+      });
+    } else if (e.code === "ArrowDown") {
       if (selectedItemIndex < flatNodes.length - 1)
         this.selectItemAt(selectedItemIndex + 1);
-    }
-    if (e.code === "ArrowUp") {
+    } else if (e.code === "ArrowUp") {
       if (selectedItemIndex > 0) this.selectItemAt(selectedItemIndex - 1);
-    }
-    if (e.code === "ArrowLeft") {
+    } else if (e.code === "ArrowLeft") {
       const selectedItem = flatNodes[selectedItemIndex];
       if (!selectedItem.isClosed && selectedItem.children)
         this.toggleSelectedItemVisibility();
       else if (selectedItem.parent)
         this.selectItemAt(flatNodes.indexOf(selectedItem.parent));
-    }
-    if (e.code === "ArrowRight") {
+    } else if (e.code === "ArrowRight") {
       const selectedItem = flatNodes[selectedItemIndex];
       if (selectedItem.isClosed && selectedItem.children)
         this.toggleSelectedItemVisibility();
       else if (selectedItem.children)
         this.selectItemAt(flatNodes.indexOf(selectedItem.children[0]));
-    }
-    if (e.code === "KeyE") {
+    } else if (e.code === "KeyE") {
       this.actionOnView(flatNodes[selectedItemIndex], (view) =>
         view.startEdit()
       );
@@ -121,8 +161,15 @@ class TreeView {
   };
 
   get canvasSize() {
-    return this.flatNodes.length * spacings.nodeSize;
+    return this.flatNodes.length * spacings.nodeVerticalDistance;
   }
+
+  private onScroll = (canvasOffset: number) => {
+    const windowHeight = window.innerHeight;
+    this.scrollbar.setPosition(
+      (canvasOffset / (this.canvasSize - windowHeight + 150)) * windowHeight
+    );
+  };
 }
 
 class Scrollbar {

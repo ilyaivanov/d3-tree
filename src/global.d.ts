@@ -31,3 +31,5 @@ type KeyboardKey =
   | "Escape"
   | "Space"
   | "Enter";
+
+declare var gsap: any;

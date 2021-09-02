@@ -3,9 +3,6 @@ import { dom, svg } from "../infra";
 import * as anim from "../infra/anim";
 import { MyItem } from "../items";
 import { spacings } from "./constants";
-import "greensock";
-
-declare var gsap: any;
 
 type Props = {
   item: MyItem;
@@ -56,16 +53,17 @@ export class ItemView {
   private localOffset = (): [number, number] => {
     const { item } = this;
     const parentIndex = item.parent?.index || 0;
-    const x = spacings.nodeSize;
+    const x = spacings.nodeHorizontalDistance;
     //TODO: why 'item.index! - parentIndex' is not equivalent of localIndex
-    const y = (item.index! - parentIndex) * spacings.nodeSize;
+    const y = (item.index! - parentIndex) * spacings.nodeVerticalDistance;
     return [x, y];
   };
 
   private pathD = (): string =>
     this.item.parent
-      ? `M0,0H-${spacings.nodeSize}V-${
-          (this.item.index! - this.item.parent.index!) * spacings.nodeSize -
+      ? `M0,0.5H-${spacings.nodeHorizontalDistance + 0.5}V-${
+          (this.item.index! - this.item.parent.index!) *
+            spacings.nodeVerticalDistance -
           spacings.circleRadius
         }`
       : "";
@@ -112,7 +110,7 @@ export class ItemView {
       {
         x: 10,
         y: -10,
-        height: spacings.nodeSize,
+        height: spacings.nodeVerticalDistance,
         width: 2000,
       },
       dom.input({
@@ -132,6 +130,36 @@ export class ItemView {
     this.circle.insertAdjacentElement("afterend", textInput);
     input.elem.focus();
     input.elem.setSelectionRange(0, 0);
+  }
+
+  public focus() {
+    // gsap.to(this.el, { opacity: 0.8 });
+    // this.el.setAttribute("opacity", "1");
+    gsap.to(this.text, {
+      "font-size": 16,
+      autoRound: false,
+    });
+
+    gsap.to(this.circle, {
+      r: spacings.circleFocusedRadius,
+      autoRound: false,
+    });
+  }
+
+  getHeight() {
+    let count = 1;
+
+    const traverseChilds = (item: MyItem) => {
+      if (item.children && !item.isClosed) {
+        item.children.forEach(traverseChilds);
+        count += item.children.length;
+      }
+    };
+    traverseChilds(this.item);
+    return count * spacings.nodeVerticalDistance;
+  }
+  getDimensions(): DOMRect {
+    return this.el.getBoundingClientRect();
   }
 
   private stopEditing(elem: Element) {
