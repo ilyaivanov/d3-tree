@@ -39,6 +39,7 @@ type TextProps = {
   y?: number;
   dy?: string;
   fill?: string;
+  "font-size"?: number;
   contentEditable?: boolean;
 };
 export const text = (text: string, props: TextProps) => {

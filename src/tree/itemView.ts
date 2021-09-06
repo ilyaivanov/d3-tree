@@ -24,7 +24,6 @@ export class ItemView {
 
     this.path = path({ d: this.pathD(), stroke: "#4C5155", fill: "none" });
     this.text = text(this.item.name, {
-      //@ts-expect-error
       "font-size": props.isFocusRoot ? 16 : undefined,
       x: 10,
       dy: "0.32em",
